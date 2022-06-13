@@ -69,7 +69,7 @@ public class Operators {
 		op(4	, $("&&")	,"logical AND",	"left-to-right"),
 		op(3	, $("||")	,"logical OR	",	"left-to-right"),
 		op(2	, $("?:")	,"ternary	",	"right-to-left"),
-		op(1	, $("=","+=","-=*=","/=","%=&=","^=","|=<<=",">>=",">>>="),	"assignment",	"right-to-left"),
+		op(1	, $("=","+=","-=","*=","/=","%=","&=","^=","|=","<<=",">>=",">>>="),	"assignment",	"right-to-left"),
 		op(0	, $("->"),	"lambda expression arrow"	,"right-to-left")
 	);
 	public static final List<String> OPERATORS_FLAT = getOperatorsFlat();

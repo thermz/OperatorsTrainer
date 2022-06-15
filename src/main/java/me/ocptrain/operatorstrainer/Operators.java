@@ -55,11 +55,11 @@ public class Operators {
 	
 	public static final List<OperatorPrecedenceClass> LIST = List.of(
 		op(16	, $("()","[]","."),	"parenthesesarray accessmember access",	"left-to-right"),
-		op(15	, $("++","--")	,"unary post-incrementunary post-decrement",	"left-to-right"),
-		op(14	, $("=+","-","!","~","++","--"),	"unary plus - unary minus - unary logical NOT - unary bitwise NOT - unary pre-increment - unary pre-decrement",	"right-to-left" ),
-		op(13	, $("()","new")	,"cast - object creation",	"right-to-left"),
+		op(15	, $("i++","i--")	,"unary post-incrementunary post-decrement",	"left-to-right"),
+		op(14	, $("unary plus +","unary minus -","!","~","++i","--i"),	"unary plus - unary minus - unary logical NOT - unary bitwise NOT - unary pre-increment - unary pre-decrement",	"right-to-left" ),
+		op(13	, $("(cast)","new")	,"cast - object creation",	"right-to-left"),
 		op(12	, $("*", "/", "%"),	"multiplicative"	,"left-to-right"),
-		op(11	, $("=+ -+"),	"additive - string concatenation",	"left-to-right"),
+		op(11	, $("-","+"),	"additive - string concatenation",	"left-to-right"),
 		op(10	, $("<<", ">>", ">>>"),	"shift"	,"left-to-right"),
 		op(9	, $("<", "<=", ">", ">=" , "instanceof"),	"relational",	"left-to-right"),
 		op(8	, $("==", "!=")	,"equality",	"left-to-right"),

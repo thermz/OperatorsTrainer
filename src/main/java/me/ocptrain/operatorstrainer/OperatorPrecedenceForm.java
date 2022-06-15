@@ -4,7 +4,24 @@
  */
 package me.ocptrain.operatorstrainer;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.MessageFormat;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import static java.util.Optional.ofNullable;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 
 /**
@@ -56,17 +73,60 @@ class AnswerValidation{
 	
 }
 
+class OperatorTrainerListRenderer extends DefaultListCellRenderer {
+	@Override
+    public Component getListCellRendererComponent(JList list, Object value, int index,
+		boolean isSelected, boolean cellHasFocus) {
+		Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+		if ("OK".equals(value)) {
+			setBackground(Color.GREEN);
+		} else if ("KO".equals(value)) {
+			setBackground(Color.RED);
+		}
+		if (isSelected) {
+			setBackground(getBackground().darker());
+		}
+		return c;
+	}
+}
+
 public class OperatorPrecedenceForm extends javax.swing.JFrame {
 
 	private boolean isStarted = false;
 	
 	private Operators.OperatorInstance op1, op2;
 	
+	private List<AnswerValidation> attempts = new ArrayList<>();
+	
+	static final String HELP_TEXT = "<html>Click <b>Start</b> to run the test, only when you click <b>Stop</b> the test ends and summary statistics will be displayed at the bottom. "
+		+ "<br/>Please remind that you can always double click on every attempt KO or OK to see the complete message</html>";
+	
 	/**
 	 * Creates new form OperatorPrecedenceForm
 	 */
 	public OperatorPrecedenceForm() {
 		initComponents();
+		initAttemptsList();
+		attemptsProgressBar.setMaximum(100);
+		attemptsProgressBar.setStringPainted(true);
+		attemptsProgressBar.setString("0%");
+	}
+	
+	private void initAttemptsList(){
+		outAttempts.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent evt) {
+				JList list = (JList)evt.getSource();
+				if (evt.getClickCount() == 2) {
+					// Double-click detected
+					int index = list.locationToIndex(evt.getPoint());
+					var attempt = attempts.get(index);
+					var prefix = VALIDATION_SHORT_MESSAGES.get(attempt.isValid());
+					JOptionPane.showMessageDialog(OperatorPrecedenceForm.this, prefix+" "+attempt.getMessage());
+				}
+			}
+		});
+		outAttempts.setCellRenderer(new OperatorTrainerListRenderer());
 	}
 
 	/**
@@ -83,18 +143,27 @@ public class OperatorPrecedenceForm extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         operator1F = new javax.swing.JTextField();
         operator2F = new javax.swing.JTextField();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
+        op2B = new javax.swing.JButton();
+        op1B = new javax.swing.JButton();
+        sameB = new javax.swing.JButton();
         startB = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jList1 = new javax.swing.JList<>();
+        outAttempts = new javax.swing.JList<>();
         stopB = new javax.swing.JButton();
         jLabel4 = new javax.swing.JLabel();
         singleOutputTextF = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
+        outputComparisonTA = new javax.swing.JTextArea();
+        helpB = new javax.swing.JButton();
+        jSeparator1 = new javax.swing.JSeparator();
+        jLabel5 = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        jLabel7 = new javax.swing.JLabel();
+        attemptsCountF = new javax.swing.JTextField();
+        attemptsProgressBar = new javax.swing.JProgressBar();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Java Operator Trainer v1.0.0");
+        setResizable(false);
 
         jLabel1.setFont(new java.awt.Font("Segoe UI Black", 1, 18)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -106,22 +175,51 @@ public class OperatorPrecedenceForm extends javax.swing.JFrame {
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel3.setText("Operator 2");
 
-        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
-        jButton1.setText("2");
+        operator1F.setEditable(false);
 
-        jButton2.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
-        jButton2.setText("1");
+        operator2F.setEditable(false);
 
-        jButton3.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
-        jButton3.setText("Same");
+        op2B.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
+        op2B.setText("2");
+        op2B.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                op2BActionPerformed(evt);
+            }
+        });
+
+        op1B.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
+        op1B.setText("1");
+        op1B.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                op1BActionPerformed(evt);
+            }
+        });
+
+        sameB.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
+        sameB.setText("Same");
+        sameB.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                sameBActionPerformed(evt);
+            }
+        });
 
         startB.setText("Start");
+        startB.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                startBActionPerformed(evt);
+            }
+        });
 
-        jScrollPane1.setViewportView(jList1);
+        jScrollPane1.setViewportView(outAttempts);
 
         stopB.setText("Stop");
+        stopB.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                stopBActionPerformed(evt);
+            }
+        });
 
-        jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(0, 0, 153));
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel4.setText("<html>Which operator has<br/>more precedence?</html>");
@@ -130,76 +228,166 @@ public class OperatorPrecedenceForm extends javax.swing.JFrame {
         singleOutputTextF.setEnabled(false);
         singleOutputTextF.setFont(new java.awt.Font("Yu Gothic UI Semibold", 0, 14)); // NOI18N
 
-        jTextArea1.setColumns(20);
-        jTextArea1.setRows(5);
-        singleOutputTextF.setViewportView(jTextArea1);
+        outputComparisonTA.setEditable(false);
+        outputComparisonTA.setColumns(20);
+        outputComparisonTA.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        outputComparisonTA.setLineWrap(true);
+        outputComparisonTA.setRows(3);
+        outputComparisonTA.setWrapStyleWord(true);
+        outputComparisonTA.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        singleOutputTextF.setViewportView(outputComparisonTA);
+
+        helpB.setIcon(new javax.swing.ImageIcon(getClass().getResource("/button-question-mark-help.png"))); // NOI18N
+        helpB.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                helpBActionPerformed(evt);
+            }
+        });
+
+        jLabel5.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        jLabel5.setText("Final score summary");
+
+        jLabel6.setText("Number of attempts: ");
+
+        jLabel7.setText("Rate: ");
+
+        attemptsCountF.setEditable(false);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
-            .addGroup(layout.createSequentialGroup()
-                .addGap(80, 80, 80)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(singleOutputTextF)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(layout.createSequentialGroup()
+                        .addGap(80, 80, 80)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(op1B, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(sameB, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(op2B, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(operator1F, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(36, 36, 36)
+                                .addComponent(operator2F, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(singleOutputTextF))
+                        .addGap(79, 100, Short.MAX_VALUE)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(operator1F, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 72, Short.MAX_VALUE)
-                            .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                            .addComponent(startB, javax.swing.GroupLayout.DEFAULT_SIZE, 132, Short.MAX_VALUE)
+                            .addComponent(stopB, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jLabel4)
-                            .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(operator2F)
-                            .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 102, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(stopB, javax.swing.GroupLayout.DEFAULT_SIZE, 94, Short.MAX_VALUE)
-                    .addComponent(startB, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
-                .addGap(30, 30, 30))
+                        .addComponent(helpB, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(27, 27, 27))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(35, 35, 35)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(attemptsCountF, javax.swing.GroupLayout.PREFERRED_SIZE, 61, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(attemptsProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(60, 60, 60))))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(294, 294, 294)
+                .addComponent(jLabel5)
+                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jSeparator1)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel1)
-                .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(jLabel3)
-                    .addComponent(startB))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel1)
+                    .addComponent(helpB, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(42, 42, 42)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
+                        .addComponent(startB)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(stopB))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel3)
+                            .addComponent(jLabel2))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(operator1F, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(operator2F, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(22, 22, 22)
+                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(71, 71, 71)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addComponent(jScrollPane1))
+                            .addComponent(op2B, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sameB, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(op1B, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(28, 28, 28)
+                        .addComponent(singleOutputTextF, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(18, 18, 18)
-                .addComponent(stopB)
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(singleOutputTextF, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(64, Short.MAX_VALUE))
+                .addComponent(jLabel5)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(attemptsCountF, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(attemptsProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(35, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void startBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startBActionPerformed
+        isStarted = true;
+		refreshOperators();
+		clearSummaryStats();
+    }//GEN-LAST:event_startBActionPerformed
+
+    private void stopBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopBActionPerformed
+        isStarted = false;
+		clear();
+		setSummaryStats();
+    }//GEN-LAST:event_stopBActionPerformed
+
+    private void op1BActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_op1BActionPerformed
+        Answer a = new Answer(true, false, false);
+		submitOpCheckEvent(a);
+    }//GEN-LAST:event_op1BActionPerformed
+
+    private void sameBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sameBActionPerformed
+        // TODO add your handling code here:
+		Answer a = new Answer(false, true, false);
+		submitOpCheckEvent(a);
+    }//GEN-LAST:event_sameBActionPerformed
+
+    private void op2BActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_op2BActionPerformed
+        Answer a = new Answer(false, false, true);
+		submitOpCheckEvent(a);
+    }//GEN-LAST:event_op2BActionPerformed
+	
+    private void helpBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_helpBActionPerformed
+        // TODO add your handling code here:
+		JOptionPane.showMessageDialog(this, HELP_TEXT);
+    }//GEN-LAST:event_helpBActionPerformed
 
 	/**
 	 * @param args the command line arguments
@@ -231,9 +419,18 @@ public class OperatorPrecedenceForm extends javax.swing.JFrame {
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				new OperatorPrecedenceForm().setVisible(true);
+				var form = new OperatorPrecedenceForm();
+				form.setLocationRelativeTo(null);
+				form.setVisible(true);
 			}
 		});
+	}
+	
+	void clear(){
+		operator1F.setText("");
+		operator2F.setText("");
+		outputComparisonTA.setText("");
+//		outAttempts.setListData(new String[]{});
 	}
 	
 	void refreshOperators(){
@@ -245,31 +442,108 @@ public class OperatorPrecedenceForm extends javax.swing.JFrame {
 		
 	}
 	
-	boolean validateAnswer
+	private static final Map<Integer, Function<Answer,Boolean>> VALIDATION_MAP = new HashMap<>(){{
+		put(-1, Answer::isTwo);
+		put(0, Answer::isSame);
+		put(1, Answer::isOne);
+	}};
+	
+	private static final Map<Integer, String> VALIDATION_COMPARISON_MESSAGE = new HashMap<>(){{
+		put(-1, "Second operator {1} has more precedence than {0}");
+		put(0, "The 2 operators {0},{1} have the same level of precedence");
+		put(1, "First operator {0} has more precedence than {1}");
+	}};
+	
+	private static final Map<Boolean, String> VALIDATION_MESSAGES = new HashMap<>(){{
+		put(true, "Correct answer: ");
+		put(false, "Wrong answer: ");
+	}};
+	
+	private static final Map<Boolean, String> VALIDATION_SHORT_MESSAGES = new HashMap<>(){{
+		put(true, "OK");
+		put(false, "KO");
+	}};
+	
+	
+	private AnswerValidation createValidation(Answer a, int comparison){
+		Boolean valid = ofNullable( VALIDATION_MAP.get(comparison) ).map( f -> f.apply(a) ).orElseThrow();
+		String outputMessage = VALIDATION_MESSAGES.get(valid) + getValidationComparisonMessage(comparison);
+		return new AnswerValidation(valid, outputMessage);
+	}
+	
+	private String getValidationComparisonMessage(int comparison){
+		return MessageFormat.format( VALIDATION_COMPARISON_MESSAGE.get(comparison), op1.getOperator(), op2.getOperator() );
+	}
 	
 	void submitOpCheckEvent(Answer a){
 		if(isStarted){
-			
+			AnswerValidation validation = createValidation(a, op1.compareTo(op2));
+			outputComparisonTA.setText(validation.getMessage());
+			addAttempt(validation);
+			refreshOperators();
 		} else {
 			JOptionPane.showMessageDialog(this, "Please click start to run the test");
 		}
 	}
+	
+	//XXX --------- attempts array should be strictly coupled to attempts JList
+	void addAttempt(AnswerValidation attempt){
+		attempts.add(attempt);
+		refreshOutputAttempts();
+	}
+	void clearAttempts(){
+		attempts.clear();
+		refreshOutputAttempts();
+	}
+	// ----------------------------------------------------------
+	
+	private void refreshOutputAttempts() {
+		List<String> toRefresh = attempts.stream().map(AnswerValidation::isValid).map(VALIDATION_SHORT_MESSAGES::get).collect(Collectors.toList());
+		outAttempts.setListData(toRefresh.toArray(String[]::new));
+	}
+	
+	private void setSummaryStats() {
+		attemptsCountF.setText(String.valueOf(attempts.size()));
+		BigDecimal size = ( ! attempts.isEmpty() )?BigDecimal.valueOf(attempts.size()):BigDecimal.ONE;
+		BigDecimal rate = BigDecimal.valueOf( attempts.stream().filter(AnswerValidation::isValid).count() )
+			.divide(size, 2, RoundingMode.HALF_EVEN)
+			.multiply(BigDecimal.valueOf(100));
+		String rateperc = NumberFormat.getNumberInstance().format(rate.doubleValue());
+		attemptsProgressBar.setString(rateperc+"%");
+		attemptsProgressBar.setValue(rate.intValue());
+	}
+	
+	private void clearSummaryStats() {
+		attemptsProgressBar.setString("0%");
+		attemptsCountF.setText("");
+		attemptsProgressBar.setValue(0);
+		clearAttempts();
+	}
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
+    private javax.swing.JTextField attemptsCountF;
+    private javax.swing.JProgressBar attemptsProgressBar;
+    private javax.swing.JButton helpB;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    private javax.swing.JList<String> jList1;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTextArea jTextArea1;
+    private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JButton op1B;
+    private javax.swing.JButton op2B;
     private javax.swing.JTextField operator1F;
     private javax.swing.JTextField operator2F;
+    private javax.swing.JList<String> outAttempts;
+    private javax.swing.JTextArea outputComparisonTA;
+    private javax.swing.JButton sameB;
     private javax.swing.JScrollPane singleOutputTextF;
     private javax.swing.JButton startB;
     private javax.swing.JButton stopB;
     // End of variables declaration//GEN-END:variables
+
+
 }

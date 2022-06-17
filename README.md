@@ -9,7 +9,7 @@ var x = 4;
 double i = (int) 5.7 / 3 - x ++ + (x >>= x ^ 6) + 'a' ;
 ```
 
-For as bad as it may seems, this code compiles! Remembering the precedence order of operators in Java is a bit of a challenge, but many questions in OCP tests actually requires this kind of knowledge, and remembering all the operators precedence table rows is not easy as it seems.
+For as bad as it may seems, this code compiles! To memorize the precedence order of operators in Java is a bit of a challenge, but many questions in OCP tests actually requires this kind of knowledge, and remembering all the operators precedence table rows is not easy as it seems.
 
 This tool helps you training with this specific and tricky aspect of Java. Just download the latest jar version at https://github.com/thermz/OperatorsTrainer/blob/master/target/OperatorsTrainer-1.0.jar and then execute it!
 
